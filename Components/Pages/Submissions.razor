@@ -1,0 +1,97 @@
+@page "/submissions"
+@rendermode InteractiveServer
+@using VirusDetectionApp.Models
+@using VirusDetectionApp.Services
+@implements IDisposable
+
+<h3>Submissions</h3>
+
+<p>
+    <a href="/export/submissions" target="_blank">Download Excel Export</a>
+</p>
+
+<p>Last updated: @lastUpdated</p>
+
+@inject SubmissionService SubmissionService
+
+@if (submissions == null)
+{
+    <p>Loading...</p>
+}
+else if (submissions.Count == 0)
+{
+    <p>No submissions found.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>File Name</th>
+                <th>Source</th>
+                <th>Reason</th>
+                <th>Submitted</th>
+                <th>Status</th>
+                <th>Scan Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var submission in submissions)
+            {
+                <tr>
+                    <td>@submission.FileName</td>
+                    <td>@submission.Source</td>
+                    <td>@submission.ReasonForSuspicion</td>
+                    <td>@submission.SubmittedAt</td>
+                    <td>@submission.Status</td>
+                    <td>@submission.ScanSummary</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Submission>? submissions;
+    private string lastUpdated = "";
+    private PeriodicTimer? timer;
+    private CancellationTokenSource? cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSubmissionsAsync();
+
+        cts = new CancellationTokenSource();
+        timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        _ = RunPollingAsync(cts.Token);
+    }
+
+    private async Task RunPollingAsync(CancellationToken token)
+    {
+        try
+        {
+            while (timer != null && await timer.WaitForNextTickAsync(token))
+            {
+                await LoadSubmissionsAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task LoadSubmissionsAsync()
+    {
+        submissions = await SubmissionService.GetAllSubmissionsAsync();
+        lastUpdated = DateTime.Now.ToString("HH:mm:ss");
+    }
+
+    public void Dispose()
+    {
+        cts?.Cancel();
+        timer?.Dispose();
+        cts?.Dispose();
+    }
+}

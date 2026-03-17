@@ -1,0 +1,120 @@
+@page "/upload"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Forms
+@using VirusDetectionApp.Models
+@using VirusDetectionApp.Services
+
+<h3>Upload File for Virus Scan</h3>
+
+@inject VirusTotalService VirusTotalService
+@inject SubmissionService SubmissionService
+
+<div>
+    <label>Choose file:</label>
+    <br />
+    <InputFile OnChange="FileSelected" />
+</div>
+
+<br />
+
+<div>
+    <label>Source:</label>
+    <br />
+    <input @bind="source" />
+</div>
+
+<br />
+
+<div>
+    <label>Reason for suspicion:</label>
+    <br />
+    <input @bind="reasonForSuspicion" />
+</div>
+
+<br />
+
+<button @onclick="UploadFile" disabled="@isUploading">Submit</button>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <p>@message</p>
+}
+
+@code {
+    private IBrowserFile? selectedFile;
+    private string source = "";
+    private string reasonForSuspicion = "";
+    private string message = "";
+    private bool isUploading = false;
+
+    private void FileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        message = $"Selected file: {selectedFile.Name}";
+    }
+
+    private async Task UploadFile()
+    {
+        if (selectedFile == null)
+        {
+            message = "Please choose a file first.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            message = "Please enter the source of the file.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(reasonForSuspicion))
+        {
+            message = "Please enter a reason for suspicion.";
+            return;
+        }
+
+        try
+        {
+            isUploading = true;
+            message = "Saving submission...";
+
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var savedFilePath = Path.Combine(uploadsFolder, selectedFile.Name);
+
+            using (var fileStream = new FileStream(savedFilePath, FileMode.Create))
+            {
+                await selectedFile.OpenReadStream(maxAllowedSize: 20 * 1024 * 1024)
+                    .CopyToAsync(fileStream);
+            }
+
+            var submission = new Submission
+            {
+                FileName = selectedFile.Name,
+                FilePath = savedFilePath,
+                Source = source,
+                ReasonForSuspicion = reasonForSuspicion,
+                Status = "Queued",
+                ScanSummary = "Waiting for background processing...",
+                AnalysisId = null
+            };
+
+            await SubmissionService.AddSubmissionAsync(submission);
+
+            message = "Submission saved. Background processing will handle the scan.";
+
+            selectedFile = null;
+            source = "";
+            reasonForSuspicion = "";
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+}
