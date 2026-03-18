@@ -26,6 +26,9 @@ public class SubmissionService
             .OrderByDescending(s => s.SubmittedAt)
             .ToListAsync();
     }
+
+    //This is so that it can check which sumbissions are still processing
+    //This is used in the logs
     public async Task<List<Submission>> GetPendingSubmissionsAsync()
     {
         return await _db.Submissions
@@ -46,6 +49,7 @@ public class SubmissionService
         await _db.SaveChangesAsync();
     }
 
+    //The status and scansummary needs to be updated based of its completion state
     public async Task UpdateSubmissionStatusAsync(
         int id,
         string status,

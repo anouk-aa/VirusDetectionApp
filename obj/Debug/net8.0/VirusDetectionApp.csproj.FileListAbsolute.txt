@@ -141,3 +141,4 @@
 /Users/anouk/VirusDetectionApp/bin/Debug/net8.0/RBush.dll
 /Users/anouk/VirusDetectionApp/bin/Debug/net8.0/SixLabors.Fonts.dll
 /Users/anouk/VirusDetectionApp/bin/Debug/net8.0/System.IO.Packaging.dll
+/Users/anouk/VirusDetectionApp/obj/Debug/net8.0/VirusDetectionApp.sourcelink.json

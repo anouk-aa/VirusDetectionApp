@@ -93,6 +93,20 @@ public class SubmissionBackgroundService : BackgroundService
 
                         await db.SaveChangesAsync(stoppingToken);
 
+                        // Delete the uploaded file after upload fails
+                        if (!string.IsNullOrWhiteSpace(submission.FilePath) && File.Exists(submission.FilePath))
+                        {
+                            try
+                            {
+                                File.Delete(submission.FilePath);
+                                _logger.LogInformation("Deleted file for failed submission {Id}: {FilePath}", submission.Id, submission.FilePath);
+                            }
+                            catch (Exception deleteEx)
+                            {
+                                _logger.LogWarning(deleteEx, "Failed to delete file for submission {Id}: {FilePath}", submission.Id, submission.FilePath);
+                            }
+                        }
+
                         _logger.LogError(ex, "Failed uploading submission {Id}.", submission.Id);
                     }
                 }
@@ -139,6 +153,22 @@ public class SubmissionBackgroundService : BackgroundService
                             submission.ScanSummary);
 
                         await db.SaveChangesAsync(stoppingToken);
+
+                        // Delete the uploaded file after analysis completes or fails
+                        if ((submission.Status == "Completed" || submission.Status == "Failed") && 
+                            !string.IsNullOrWhiteSpace(submission.FilePath) && 
+                            File.Exists(submission.FilePath))
+                        {
+                            try
+                            {
+                                File.Delete(submission.FilePath);
+                                _logger.LogInformation("Deleted file for submission {Id}: {FilePath}", submission.Id, submission.FilePath);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to delete file for submission {Id}: {FilePath}", submission.Id, submission.FilePath);
+                            }
+                        }
 
                         _logger.LogInformation(
                             "Submission {Id} updated to status {Status}.",
