@@ -2,7 +2,7 @@
 
 A Blazor web application that analyzes files for viruses using the VirusTotal API. Users can upload files, track submissions, and export submission history.
 
-##Setup Instructions
+## Setup Instructions
 
 ### Prerequisites
 - **.NET 8 SDK** or later installed on your machine ([Download](https://dotnet.microsoft.com/download))
@@ -38,7 +38,6 @@ A Blazor web application that analyzes files for viruses using the VirusTotal AP
    ```
    The app will start at `https://localhost:5001` by default.
 
-
 ## Configuration
 
 ### VirusTotal API Key
@@ -63,7 +62,6 @@ The application requires a VirusTotal API key for file analysis.
 
 **Note**: Keep your API key secure and never commit it to version control. Consider using `appsettings.Development.json` for local development with sensitive values.
 
-
 ## Notes and Assumptions
 
 ### Architecture
@@ -73,16 +71,13 @@ The application requires a VirusTotal API key for file analysis.
 
 ### Database
 - The application automatically creates the SQLite database on first run
-- Submissions are stored with their analysis ID, file hash, and current status that is first set to 'Queued'.
+- Submissions are stored with their analysis ID, file hash, and current status
 - Includes timestamps for tracking when files were submitted
 
 ### File Uploads
 - Uploaded files are temporarily stored in the `Uploads/` directory
-- Files are automatically deleted once analysis completes or fails (by the background service)
 - File analysis is handled asynchronously via a background service
 - Multiple antivirus engines are used by VirusTotal for comprehensive scanning
-
-(SubmissionBackgroundService runs on a background timer (every 10 seconds) checking for queued submissions. The service needs the actual file on disk to read and upload to VirusTotal)
 
 ### Background Processing
 - `SubmissionBackgroundService` periodically polls VirusTotal for analysis results
@@ -93,22 +88,48 @@ The application requires a VirusTotal API key for file analysis.
 - Submission history can be exported to Excel files using `ExportService`
 - Includes submission details, file hashes, and analysis results
 
-### Development vs. Production
-- Development logging level is set to "Information"
-- ASP.NET Core warnings are suppressed in logging
-- HTTPS redirection and HSTS are enabled in production
-
-### Limitations & Considerations
-- Free VirusTotal API tier has rate limits; paid plans offer higher quotas
-- File analysis completion time varies based on VirusTotal's queue
-- Ensure adequate disk space for the SQLite database and uploaded files
-- The application uses interactive server components for real-time UI updates
-
 ## Troubleshooting
 
 - **Database errors**: Delete `virussubmissions.db` to reset the database
 - **API connection issues**: Verify your API key and internet connectivity
 - **Port already in use**: The default HTTPS port (5001) may be in use; check with `lsof -i :5001`
 
+### Process Overview - (After API registration for VirsusTotalService)
+
+### 1. Initial Creation of Database
+- Model was first created to structure the database in 'Submission.cs'.
+- Next I created the 'AppDbContext.cs' to connect to SQLite, to create a databses with a table in on runtime in 'Program.cs'.
+
+//Creates the Context for the Databases and Table 
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    
+    public DbSet<Submission> Submissions => Set<Submission>();
+}
+
+- Then I registred DbContext in the 'Program.cs', where it also creates the database's name.
+
+//Registration of the Database
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=virussubmissions.db"));
+
+- I then added the database creation logic (Program.cs)
+
+//Creates temporary container to connect to the AppDbContext.cs through the the app's dependency injection.
+//Creates the databse and table if they don't exist.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>(); 
+    var created = db.Database.EnsureCreated();
+}
+
+## 2. Processing and Uploading of Sumbission 
+-I created the 'Submission.cs' Service that allows you to save the submissions to the database.
+  -What it calls?
+  - 'AppDBContext.cs' to provide connection to the databse created.
+  - DbSet<Submission> property from 'AppDbContext', to set the data 
+
 ## Favourite Punk, Emo, or Hard Rock band
-- Guns N' Roses
+
+- **Guns N' Roses** 

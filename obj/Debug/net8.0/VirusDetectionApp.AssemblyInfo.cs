@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VirusDetectionApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+92e43eec50b6f401cd08720a8735295ff4e38226")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+96f1ac1a3617c856d95ef011dc6e8108fad9fa5a")]
 [assembly: System.Reflection.AssemblyProductAttribute("VirusDetectionApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VirusDetectionApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
