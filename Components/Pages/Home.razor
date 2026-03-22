@@ -1,7 +1,186 @@
 ﻿@page "/"
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<style>
+    article.content:has(.home-wrap) {
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
 
-Welcome to your new app.
+    /* hide background orbs on home page only */
+    .app-bg:has(.home-wrap) .orb {
+        display: none;
+    }
+
+    .home-wrap {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    #ball-trail {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .neon-ball {
+        position: absolute;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: #00ccff;
+        box-shadow: 0 0 5px rgba(0,204,255,0.8);
+        animation: ballPath 9s linear 1 forwards, ballGlow 9s linear 1 forwards;
+        pointer-events: none;
+        transform-origin: center center;
+        z-index: 2;
+    }
+
+    @@keyframes ballPath {
+        /* === PHASE 1: FAST PING-PONG (0–22% ≈ 2.9s, 6 rapid wall hits) === */
+        0%    { left: calc(100% - 70px);  top: calc(50% - 35px);   transform: scaleX(1)    scaleY(1);    animation-timing-function: linear; }
+        /* → bottom-left (bottom wall) */
+        3%    { left: 0;                   top: calc(100% - 70px);  transform: scaleX(1.45) scaleY(0.65); animation-timing-function: linear; }
+        3.2%  { left: 0;                   top: calc(100% - 70px);  transform: scaleX(0.70) scaleY(1.35); animation-timing-function: linear; }
+        /* → top-right (top wall) */
+        6%    { left: calc(85% - 35px);   top: 0;                   transform: scaleX(1.45) scaleY(0.65); animation-timing-function: linear; }
+        6.2%  { left: calc(85% - 35px);   top: 0;                   transform: scaleX(0.70) scaleY(1.35); animation-timing-function: linear; }
+        /* → left-center (left wall) */
+        9%    { left: 0;                   top: calc(40% - 35px);   transform: scaleX(0.65) scaleY(1.45); animation-timing-function: linear; }
+        9.2%  { left: 0;                   top: calc(40% - 35px);   transform: scaleX(1.35) scaleY(0.70); animation-timing-function: linear; }
+        /* → bottom-right (bottom wall) */
+        12%   { left: calc(92% - 70px);   top: calc(100% - 70px);  transform: scaleX(1.45) scaleY(0.65); animation-timing-function: linear; }
+        12.2% { left: calc(92% - 70px);   top: calc(100% - 70px);  transform: scaleX(0.70) scaleY(1.35); animation-timing-function: linear; }
+        /* glide to top-left — handoff to main path */
+        14%   { left: 0;                   top: 0;                   transform: scaleX(1)    scaleY(1);    animation-timing-function: linear; }
+
+        /* === PHASE 2: MAIN PATH — medium speed, faster than before === */
+        /* top-left → bottom-center */
+        21%   { left: calc(50% - 35px);   top: calc(100% - 70px);  transform: scaleX(1.45) scaleY(0.65); animation-timing-function: linear; }
+        21.4% { left: calc(50% - 35px);   top: calc(100% - 70px);  transform: scaleX(0.70) scaleY(1.35); animation-timing-function: linear; }
+        /* → right-center */
+        27%   { left: calc(100% - 70px);  top: calc(50% - 35px);   transform: scaleX(0.65) scaleY(1.45); animation-timing-function: ease-in-out; }
+        27.4% { left: calc(100% - 70px);  top: calc(50% - 35px);   transform: scaleX(1.35) scaleY(0.70); animation-timing-function: ease-in; }
+        /* angled arc up-right */
+        40%   { left: calc(74% - 35px);   top: calc(8% - 35px);    transform: scaleX(1)    scaleY(1);    animation-timing-function: ease-in; }
+        /* angle down to final landing — bottom of page */
+        48%   { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(1.40) scaleY(0.68); animation-timing-function: ease-out; }
+        48.5% { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(0.72) scaleY(1.30); animation-timing-function: ease-out; }
+        /* bounce 1 — up */
+        53%   { left: calc(50% + 90px);   top: calc(100% - 230px); transform: scaleX(1)    scaleY(1);    animation-timing-function: ease-in; }
+        /* bounce 1 — down */
+        57%   { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(1.32) scaleY(0.74); animation-timing-function: ease-out; }
+        57.5% { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(0.76) scaleY(1.25); animation-timing-function: ease-out; }
+        /* bounce 2 — up */
+        62%   { left: calc(50% + 90px);   top: calc(100% - 160px); transform: scaleX(1)    scaleY(1);    animation-timing-function: ease-in; }
+        /* bounce 2 — down */
+        66%   { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(1.22) scaleY(0.80); animation-timing-function: ease-out; }
+        66.5% { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(0.82) scaleY(1.18); animation-timing-function: ease-out; }
+        /* bounce 3 — up */
+        71%   { left: calc(50% + 90px);   top: calc(100% - 115px); transform: scaleX(1)    scaleY(1);    animation-timing-function: ease-in; }
+        /* bounce 3 — down */
+        74%   { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(1.14) scaleY(0.88); animation-timing-function: ease-out; }
+        74.5% { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(0.88) scaleY(1.12); animation-timing-function: ease-out; }
+        /* bounce 4 — up (minor) */
+        78%   { left: calc(50% + 90px);   top: calc(100% - 92px);  transform: scaleX(1)    scaleY(1);    animation-timing-function: ease-in; }
+        /* bounce 4 — down */
+        81%   { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(1.03) scaleY(0.97); animation-timing-function: ease-out; }
+        81.5% { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(0.98) scaleY(1.02); animation-timing-function: ease-out; }
+        /* bounce 5 — micro */
+        85%   { left: calc(50% + 90px);   top: calc(100% - 80px);  transform: scaleX(1)    scaleY(1);    animation-timing-function: ease-in; }
+        87%   { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(1.01) scaleY(0.99); animation-timing-function: ease-in-out; }
+        /* rest */
+        100%  { left: calc(50% + 90px);   top: calc(100% - 70px);  transform: scaleX(1)    scaleY(1); }
+    }
+
+    @@keyframes ballGlow {
+        0%   { box-shadow: 0 0 5px rgba(0,204,255,0.8); }
+        90%  { box-shadow: 0 0 5px rgba(0,204,255,0.8); }
+        100% { box-shadow: 0 0 0px rgba(0,204,255,0); }
+    }
+
+    .home-text {
+        position: fixed;
+        top: 50%;
+        left: calc(50vw + 125px);
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        text-align: center;
+        pointer-events: auto;
+    }
+
+    .home-orb {
+        position: fixed;
+        width: 520px;
+        height: 520px;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 5;
+        filter: blur(80px);
+        background: radial-gradient(circle, rgba(220, 60, 150, 0.75) 0%, rgba(160, 30, 110, 0.3) 50%, transparent 70%);
+        left: calc(50vw + 125px);
+        transform: translateX(-50%);
+        top: 110%;
+        opacity: 0;
+        animation: orbRise 2.8s cubic-bezier(0.22, 1, 0.36, 1) 7.8s 1 forwards;
+    }
+
+    @@keyframes orbRise {
+        0%   { top: 110%;           opacity: 0;   }
+        15%  { opacity: 0.9;                      }
+        100% { top: calc(50% - 260px); opacity: 1; }
+    }
+</style>
+
+<canvas id="ball-trail"></canvas>
+
+<div class="home-wrap">
+    <div class="neon-ball"></div>
+</div>
+
+<div class="home-orb"></div>
+
+<div class="home-text">
+    <h1>Hello, world!</h1>
+    <p>Welcome to your virus detection dashboard. Use the navigation menu to upload files and view submissions.</p>
+</div>
+
+<script>
+(function () {
+    function tryInit() {
+        if (typeof window.stopBallTrail === 'function') window.stopBallTrail();
+        if (typeof window.initBallTrail === 'function') window.initBallTrail();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', tryInit);
+    } else {
+        tryInit();
+    }
+})();
+</script>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await JS.InvokeVoidAsync("initBallTrail");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await JS.InvokeVoidAsync("stopBallTrail");
+    }
+}

@@ -36,7 +36,7 @@ A Blazor web application that analyzes files for viruses using the VirusTotal AP
    ```bash
    dotnet run
    ```
-   The app will start at `https://localhost:5001` by default.
+   Then run the app on http://localhost:5143 in a browser.
 
 ## Configuration
 
@@ -717,12 +717,37 @@ public class SubmissionBackgroundService : BackgroundService
 }
 ```
 
-### 4. More Information: How The Files Get Uploaded
+### 2.4. More Information: How The Files Get Uploaded
 - The background service (SubmissionBackgroundService) finds a queued submission and opens the file from disk.
 - It calls virusTotalService.UploadFileAsync(stream, submission.FileName).
 - Inside UploadFileAsync, the file stream is sent to VirusTotal using an HTTP POST request to the "files" endpoint.
 
 
+### 3. Razor Pages
+ 
+#### 3.1 Upload Razor
+
+- Provides a file upload form for users to submit files for virus scanning.
+- Uses an `<InputFile>` component to allow file selection from the user's device.
+- Includes additional form fields for source and reason for suspicion.
+- Handles file selection and form submission events in C# code-behind.
+- On submit, saves the uploaded file to the server and creates a new submission record in the database.
+- Displays upload progress and error messages to the user.
+- Triggers background processing for virus scanning after upload.
+
+#### 3.2 Submission Razor
+
+- Displays a list of all file submissions made by users.
+- Retrieves submission data from the database using a service (e.g., `SubmissionService`).
+- Shows key details for each submission: file name, source, reason for suspicion, submission date, status, and scan summary.
+- Updates the UI automatically as new submissions are added or statuses change.
+- Provides visual indicators for submission status (e.g., queued, in progress, completed, failed).
+- May include options to filter, sort, or search submissions.
+- Allows users to view detailed scan results for each submission.
+- Supports exporting submission history to Excel via the export feature.
+
+
+
 ## Favourite Punk, Emo, or Hard Rock band
 
-- **Guns N' Roses** 
+- **Guns N' Roses**

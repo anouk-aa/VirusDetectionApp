@@ -60,11 +60,13 @@ public class SubmissionBackgroundService : BackgroundService
                             continue;
                         }
 
-                        await using var stream = File.OpenRead(submission.FilePath);
-
                         var analysisId = await RetryAsync(
-                             () => virusTotalService.UploadFileAsync(stream, submission.FileName),
-                             "VirusTotal file upload");
+                            async () =>
+                            {
+                                await using var stream = File.OpenRead(submission.FilePath);
+                                return await virusTotalService.UploadFileAsync(stream, submission.FileName);
+                            },
+                            "VirusTotal file upload");
 
                         submission.AnalysisId = analysisId;
                         submission.Status = "In Progress";

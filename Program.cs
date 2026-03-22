@@ -18,7 +18,11 @@ builder.Services.AddHostedService<SubmissionBackgroundService>();
 
 // Razor components
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddHubOptions(options =>
+    {
+        options.MaximumReceiveMessageSize = 50 * 1024 * 1024; // 50 MB
+    });
 
 var app = builder.Build();
 

@@ -4,41 +4,120 @@
 @using VirusDetectionApp.Models
 @using VirusDetectionApp.Services
 
-<h3>Upload File for Virus Scan</h3>
-
 @inject VirusTotalService VirusTotalService
 @inject SubmissionService SubmissionService
+@inject NavigationManager NavigationManager
 
-<div>
-    <label>Choose file:</label>
-    <br />
-    <InputFile OnChange="FileSelected" />
+<style>
+    /* Hide the outer glass panel on this page only */
+    article.content {
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;back
+        margin: 0 !important;
+    }
+
+    /* Make the upload card fully transparent — text floats on background */
+    .upload-card {
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .upload-title {
+        margin-bottom: 2rem;
+    }
+
+    .upload-field {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 1.4rem;
+    }
+
+    /* Hide the native file picker — moved off-screen, not clipped/tiny, to avoid browser stream blocking */
+    .upload-field input[type="file"] {
+        position: absolute;
+        left: -9999px;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+    }
+
+    /* Glassy "Choose File" button replacement */
+    .file-label {
+        display: block;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.35) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 1.1rem !important;
+        font-family: inherit;
+        font-weight: normal !important;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        text-align: center;
+    }
+    .file-label:hover {
+        border-color: rgba(67, 160, 71, 0.7);
+        box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.15);
+    }
+    .file-selected-name {
+        margin-top: 0.4rem;
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.4);
+    }
+
+    .upload-title { font-size: 2.2rem; white-space: nowrap; }
+    .upload-field label { text-align: center; font-size: 1.15rem; }
+    .upload-field input { font-size: 1.1rem; }
+    .upload-message { text-align: center; font-size: 1.05rem; }
+</style>
+
+<div class="upload-bg">
+    <div class="upload-orb"></div>
+    <div class="upload-wrapper">
+        <div class="upload-card">
+            <h2 class="upload-title">Upload File for Virus Scan</h2>
+
+            <div class="upload-field">
+                <label>Choose file:</label>
+                <label for="fileInput" class="file-label">Choose File</label>
+                <InputFile id="fileInput" OnChange="FileSelected" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" />
+                <span class="file-selected-name">@(selectedFile != null ? selectedFile.Name : "no file selected")</span>
+            </div>
+
+            <div class="upload-field">
+                <label>Source:</label>
+                <input @bind="source" placeholder="Where did you get this file?" />
+            </div>
+
+            <div class="upload-field">
+                <label>Reason for suspicion:</label>
+                <input @bind="reasonForSuspicion" placeholder="Why is this file suspicious?" />
+            </div>
+
+            <button @onclick="UploadFile" disabled="@isUploading">@(isUploading ? "Uploading..." : "Submit")</button>
+
+            @if (!string.IsNullOrWhiteSpace(message))
+            {
+                <p class="upload-message">@message</p>
+            }
+        </div>
+    </div>
 </div>
-
-<br />
-
-<div>
-    <label>Source:</label>
-    <br />
-    <input @bind="source" />
-</div>
-
-<br />
-
-<div>
-    <label>Reason for suspicion:</label>
-    <br />
-    <input @bind="reasonForSuspicion" />
-</div>
-
-<br />
-
-<button @onclick="UploadFile" disabled="@isUploading">Submit</button>
-
-@if (!string.IsNullOrWhiteSpace(message))
-{
-    <p>@message</p>
-}
 
 @code {
     private IBrowserFile? selectedFile;
@@ -102,8 +181,10 @@
 
             await SubmissionService.AddSubmissionAsync(submission);
 
-            message = "Submission saved. Background processing will handle the scan.";
+            // Navigate to the submissions page after successful upload
+            NavigationManager.NavigateTo("/submissions");
 
+            // Optionally clear form fields (not strictly necessary since navigating away)
             selectedFile = null;
             source = "";
             reasonForSuspicion = "";

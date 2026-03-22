@@ -4,10 +4,49 @@
 @using VirusDetectionApp.Services
 @implements IDisposable
 
-<h3>Submissions</h3>
+<style>
+    .loader {
+        height: 8px;
+        aspect-ratio: 6;
+        --c: #0000 64%, #FF007F 66% 98%, #0000 101%;
+        background:
+            radial-gradient(35% 146% at 50% 159%, var(--c)) 0 0,
+            radial-gradient(35% 146% at 50% -59%, var(--c)) 25% 100%;
+        background-size: calc(100% / 3) 50%;
+        background-repeat: repeat-x;
+        clip-path: inset(0 100% 0 0);
+        animation: l2 1s infinite linear;
+    }
+    @@keyframes l2 {
+        90%, to { clip-path: inset(0); }
+    }
+
+    .btn-export {
+        display: inline-block;
+        background: rgba(0, 204, 255, 0.15);
+        color: #fff !important;
+        border: 1px solid rgba(0, 204, 255, 0.45);
+        border-radius: 10px;
+        padding: 0.55rem 1.5rem;
+        font-size: 1rem;
+        font-family: inherit;
+        text-decoration: none !important;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: background 0.2s, box-shadow 0.2s;
+        box-shadow: 0 2px 12px rgba(0,204,255,0.15);
+    }
+    .btn-export:hover {
+        background: rgba(0, 204, 255, 0.28);
+        box-shadow: 0 4px 20px rgba(0,204,255,0.30);
+    }
+</style>
+
+<h2>Submissions</h2>
 
 <p>
-    <a href="/export/submissions" target="_blank">Download Excel Export</a>
+    <a href="/export/submissions" target="_blank" class="btn-export">Download Excel Export</a>
 </p>
 
 <p>Last updated: @lastUpdated</p>
@@ -44,7 +83,19 @@ else
                     <td>@submission.ReasonForSuspicion</td>
                     <td>@submission.SubmittedAt</td>
                     <td>@submission.Status</td>
-                    <td>@submission.ScanSummary</td>
+                    <td>
+                        @if (submission.Status == "Completed" || submission.Status == "Failed")
+                        {
+                            @submission.ScanSummary
+                        }
+                        else
+                        {
+                            <div style="display:flex; align-items:center; gap:0.75rem;">
+                                <span>@submission.ScanSummary</span>
+                                <div class="loader" style="height:8px; flex-shrink:0;"></div>
+                            </div>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>

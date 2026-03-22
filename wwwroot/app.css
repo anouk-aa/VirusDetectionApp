@@ -1,51 +1,426 @@
+/* =============================================================
+   Virus Detection App — Global Stylesheet
+   -------------------------------------------------------------
+   Sections:
+   1. CSS Variables (change colours/sizes here)
+   2. Reset & Base
+   3. Animated Background Orbs
+   4. Typography
+   5. Links
+   6. Layout (Sidebar, Main, Content)
+   7. Buttons
+   8. Inputs & Forms
+   9. Table
+   10. Status Badges
+   11. Upload Page
+   12. Validation
+   13. Blazor Error UI
+   14. Responsive
+   ============================================================= */
+
+/* ─────────────────────────────────────────
+   1. CSS Variables
+   ───────────────────────────────────────── */
+:root {
+    /* Colours */
+    --color-bg:           #0D1321;
+    --color-text:         #e8eaf6;
+    --color-white:        #ffffff;
+    --color-accent:       rgba(0, 204, 255, 1);       /* cyan */
+    --color-accent-dim:   rgba(0, 204, 255, 0.15);
+    --color-accent-mid:   rgba(0, 204, 255, 0.28);
+    --color-accent-border:rgba(0, 204, 255, 0.45);
+    --color-accent-glow:  rgba(0, 204, 255, 0.30);
+
+    /* Glass */
+    --glass-bg:           rgba(255, 255, 255, 0.07);
+    --glass-bg-light:     rgba(255, 255, 255, 0.05);
+    --glass-border:       rgba(255, 255, 255, 0.15);
+    --glass-border-light: rgba(255, 255, 255, 0.08);
+    --glass-blur:         blur(18px);
+    --glass-blur-light:   blur(14px);
+
+    /* Typography */
+    --font-family:        'Trebuchet MS', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    --font-size-base:     1.1rem;
+    --font-size-sm:       0.95rem;
+
+    /* Spacing */
+    --radius-sm:          8px;
+    --radius-md:          14px;
+    --radius-lg:          20px;
+    --spacing-page:       1.5rem;
+}
+
+/* ─────────────────────────────────────────
+   2. Reset & Base
+   ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    height: 100%;
+    margin: 0;
+    padding: 0;
 }
 
+body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+}
+
+/* ─────────────────────────────────────────
+   3. Animated Background Orbs
+   ───────────────────────────────────────── */
+.app-bg {
+    position: relative;
+    min-height: 100vh;
+    background: var(--color-bg);
+    overflow: hidden;
+}
+
+.orb {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(60px);
+    opacity: 0.45;
+}
+
+.orb-1 {
+    width: 950px; height: 950px;
+    background: radial-gradient(circle, rgba(194,249,112,0.72) 0%, transparent 68%);
+    top: -300px; left: -300px;
+    animation: orbFloat1 17s ease-in-out infinite;
+}
+.orb-2 {
+    width: 780px; height: 780px;
+    background: radial-gradient(circle, rgba(255,39,165,0.68) 0%, transparent 68%);
+    bottom: -260px; right: -220px;
+    animation: orbFloat2 22s ease-in-out infinite;
+}
+.orb-3 {
+    width: 640px; height: 640px;
+    background: radial-gradient(circle, rgba(80,40,180,0.55) 0%, transparent 68%);
+    top: 38%; left: 38%;
+    animation: orbFloat3 14s ease-in-out infinite;
+}
+
+@keyframes orbFloat1 {
+    0%   { transform: translate(0, 0) scale(1); }
+    28%  { transform: translate(520px, 420px) scale(1.08); }
+    52%  { transform: translate(780px, 160px) scale(0.93); }
+    76%  { transform: translate(320px, 580px) scale(1.05); }
+    100% { transform: translate(0, 0) scale(1); }
+}
+@keyframes orbFloat2 {
+    0%   { transform: translate(0, 0) scale(1); }
+    30%  { transform: translate(-580px, -380px) scale(1.1); }
+    58%  { transform: translate(-220px, -520px) scale(0.9); }
+    80%  { transform: translate(-640px, -120px) scale(1.04); }
+    100% { transform: translate(0, 0) scale(1); }
+}
+@keyframes orbFloat3 {
+    0%   { transform: translate(0, 0) scale(1); }
+    25%  { transform: translate(-420px, -200px) scale(1.1); }
+    50%  { transform: translate(280px, -320px) scale(0.93); }
+    75%  { transform: translate(-160px, 270px) scale(1.06); }
+    100% { transform: translate(0, 0) scale(1); }
+}
+
+/* ─────────────────────────────────────────
+   4. Typography
+   ───────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 { color: var(--color-white); font-weight: 700; }
+h1 { font-size: 2.2rem; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.5rem; }
+h1:focus { outline: none; }
+
+/* ─────────────────────────────────────────
+   5. Links
+   ───────────────────────────────────────── */
 a, .btn-link {
-    color: #006bb7;
+    color: rgba(255,255,255,0.75);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+a:hover, .btn-link:hover { color: var(--color-white); }
+
+/* ─────────────────────────────────────────
+   6. Layout (Sidebar, Main, Content)
+   ───────────────────────────────────────── */
+main { background: transparent; }
+
+article.content {
+    background: var(--glass-bg-light);
+    backdrop-filter: var(--glass-blur-light);
+    -webkit-backdrop-filter: var(--glass-blur-light);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-md);
+    padding: 2rem;
+    margin: var(--spacing-page);
+    color: var(--color-text);
+    position: relative;
+    z-index: 1;
 }
 
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+/* Remove glass pane on upload page so content floats directly on background */
+article.content:has(.upload-bg) {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+/* Reusable glass utility class */
+.glass {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur-light);
+    -webkit-backdrop-filter: var(--glass-blur-light);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
 }
 
-.content {
-    padding-top: 1.1rem;
+/* ─────────────────────────────────────────
+   7. Buttons
+   ───────────────────────────────────────── */
+.btn-primary,
+body button,
+body input[type="submit"] {
+    background: var(--color-accent-dim) !important;
+    color: var(--color-white) !important;
+    border: 1px solid var(--color-accent-border) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 0.55rem 1.5rem !important;
+    font-size: var(--font-size-base) !important;
+    cursor: pointer !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    transition: background 0.2s, box-shadow 0.2s !important;
+    box-shadow: 0 2px 12px rgba(0,204,255,0.15) !important;
+    font-family: var(--font-family) !important;
 }
 
-h1:focus {
+.btn-primary:hover,
+body button:hover,
+body input[type="submit"]:hover {
+    background: var(--color-accent-mid) !important;
+    box-shadow: 0 4px 20px var(--color-accent-glow) !important;
+}
+
+body button:disabled {
+    background: rgba(255,255,255,0.08) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    color: rgba(255,255,255,0.35) !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+}
+
+/* ─────────────────────────────────────────
+   8. Inputs & Forms
+   ───────────────────────────────────────── */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select, textarea {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.75rem;
+    font-size: var(--font-size-base);
+    color: var(--color-white);
+    font-family: var(--font-family);
+    width: 100%;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    margin-bottom: 0;
+}
+
+input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.35); }
+
+input:focus, select:focus, textarea:focus {
     outline: none;
+    border-color: var(--color-accent-border);
+    box-shadow: 0 0 0 3px rgba(0, 204, 255, 0.12);
 }
 
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+/* ─────────────────────────────────────────
+   9. Table
+   ───────────────────────────────────────── */
+.table { width: 100%; border-collapse: collapse; color: var(--color-text); }
+
+.table th {
+    background: rgba(0, 204, 255, 0.12);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    font-weight: 700;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid rgba(0, 204, 255, 0.30);
+    text-align: left;
 }
 
-.invalid {
-    outline: 1px solid #e50000;
+.table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
-.validation-message {
-    color: #e50000;
+.table tr:hover td { background: rgba(255,255,255,0.04); }
+
+/* ─────────────────────────────────────────
+   10. Status Badges
+   ───────────────────────────────────────── */
+.status-success    { color: #69f0ae; font-weight: bold; }
+.status-failed     { color: #ff5252; font-weight: bold; }
+.status-inprogress { color: #ffd740; font-weight: bold; }
+
+/* ─────────────────────────────────────────
+   11. Upload Page
+   ───────────────────────────────────────── */
+.upload-bg {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    overflow: hidden;
 }
 
+/* Floating orb behind the form */
+.upload-orb {
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(45,55,100,0.85) 0%, rgba(13,19,33,0) 70%);
+    animation: orbMove 10s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(30px);
+}
+
+@keyframes orbMove {
+    0%   { transform: translate(-20%, -20%) scale(1); }
+    50%  { transform: translate(10%, 20%) scale(0.95); }
+    100% { transform: translate(-20%, -20%) scale(1); }
+}
+
+.upload-wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 2rem 1rem;
+}
+
+/* Floating card — fully transparent, no panel visible */
+.upload-card {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 2.5rem 3rem;
+    width: 100%;
+    max-width: 520px;
+    color: var(--color-white);
+    box-shadow: none;
+}
+
+/* Centered page title inside the card */
+.upload-title {
+    color: var(--color-white);
+    font-size: 1.7rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.01em;
+}
+
+.upload-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.upload-field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.4rem;
+    width: 100%;
+}
+
+.upload-field label {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: rgba(255,255,255,0.85);
+    text-align: center;
+}
+
+.upload-field input {
+    margin-bottom: 0;
+    width: 100%;
+    text-align: center;
+}
+
+.upload-message {
+    margin-top: 1rem;
+    font-size: var(--font-size-sm);
+    color: rgba(255,255,255,0.65);
+    text-align: center;
+}
+
+/* ─────────────────────────────────────────
+   12. Validation
+   ───────────────────────────────────────── */
+.valid.modified:not([type=checkbox]) { outline: 1px solid #69f0ae; }
+.invalid { outline: 1px solid #ff5252; }
+.validation-message { color: #ff5252; }
+
+/* ─────────────────────────────────────────
+   13. Blazor Error UI
+   ───────────────────────────────────────── */
 .blazor-error-boundary {
-    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
+    background: rgba(179,33,33,0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,100,100,0.3);
+    border-radius: var(--radius-sm);
     padding: 1rem 1rem 1rem 3.7rem;
-    color: white;
+    color: var(--color-white);
+}
+.blazor-error-boundary::after { content: "An error has occurred."; }
+
+.darker-border-checkbox.form-check-input { border-color: #929292; }
+
+/* ─────────────────────────────────────────
+   14. Responsive
+   ───────────────────────────────────────── */
+@media (max-width: 600px) {
+    .upload-card    { padding: 1.5rem 1rem; }
+    .upload-orb     { width: 300px; height: 300px; }
+    article.content { margin: 0.75rem; padding: 1.25rem; }
+    h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.3rem; }
+    h3 { font-size: 1.15rem; }
 }
 
-    .blazor-error-boundary::after {
-        content: "An error has occurred."
-    }
-
-.darker-border-checkbox.form-check-input {
-    border-color: #929292;
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
 }
+
+body {
+    background: #0D1321;
+    color: #e8eaf6;
+    font-family: 'Trebuchet MS', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 1.1rem;
+}
+
