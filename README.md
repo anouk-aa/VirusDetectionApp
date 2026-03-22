@@ -96,6 +96,16 @@ The application requires a VirusTotal API key for file analysis.
 
 ### Process Overview - (After API registration for VirsusTotalService)
 
+
+<details>
+<summary>Show code:</summary>
+
+```csharp
+ddddddd
+
+</details> ```
+
+
 ### 1. Initial Creation of Database
 - Model was first created to structure the database in 'Submission.cs'.
 - Next I created the 'AppDbContext.cs' to connect to SQLite, to create a databses with a table in on runtime in 'Program.cs'.
@@ -180,7 +190,7 @@ using (var scope = app.Services.CreateScope())
     }
 
 ## 2.2.2. VirusTotalService's UploadFileAsync Method
-- I created an async method that takes file stream and name, returns analysis ID string and reg
+- I created an async method that takes file stream and name, returns analysis ID string.
 - It used aync because it lets you do other things while waiting for answers from VirusTotal.
 - I created a multipart form content object for file upload (automatically deleted from memory after done).
 - I created a stream content from the file stream (automatically deleted from memory after done).
@@ -338,6 +348,27 @@ public async Task<List<Submission>> ExportSubmissionsAsync()
 
 
 ## 2.3.  Export Service Creation 'ExportService.cs'
+- Registers service firts in 'Program.cs'.
+
+    builder.Services.AddScoped<ExportService>();
+
+- Defines new HTTP GET endpoint at /export/submissions in 'Program.cs'.
+
+    // Excel export endpoint
+    app.MapGet("/export/submissions", async (
+        SubmissionService submissionService,
+        ExportService exportService) =>
+    {
+        var submissions = await submissionService.ExportSubmissionsAsync();
+        var fileBytes = exportService.CreateSubmissionsExcel(submissions);
+
+        return Results.File(
+            fileBytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "submissions.xlsx");
+    });
+
+- In 'ExportService.cs':
 - Creates a new Excel workbook and adds a worksheet named "Submissions".
 - Fills the first row with column names for each property.
 - Loops through all submissions and add their data.
@@ -385,6 +416,283 @@ public class ExportService
     }
 }
 
+## 2.3.  Backgroound Service for Submission Creation 'SubmissionBackgroundService.cs'
+- I first registered the service in 'Program.cs'
+
+    builder.Services.AddHostedService<SubmissionBackgroundService>();
+
+- Defines a background service that runs continuously in the background of your app.
+- Declares private fields for the service provider (to resolve dependencies) and logger (for logging).
+- Constructor uses dependency injection to assign the service provider and logger to those fields.
+- When the service starts, it logs that it has started.
+- Main loop: keeps running until the app is shutting down. Each cycle:
+- reates a new DI scope to safely resolve services for this cycle.
+- Gets the database context and VirusTotal service from the DI container.
+- Finds all submissions that are "Queued" (waiting to be uploaded to VirusTotal).
+- For each queued submission:
+  - Logs that it’s processing the submission.
+  - Checks if the file exists on disk. If not, marks as "Failed" and logs why.
+  - If the file exists, uploads it to VirusTotal (with retry logic for reliability).
+  - Updates the submission’s status to "In Progress" and saves the new analysis ID.
+  - Logs all status changes and actions.
+  - If upload fails, marks as "Failed", logs the error, and deletes the file.
+- Finds all submissions that are "In Progress" (already uploaded, waiting for scan results).
+- For each in-progress submission:
+  - Logs that it’s polling VirusTotal for results.
+  - Polls VirusTotal for the latest scan result (with retry logic).
+  -  If the scan is "Completed", updates status and scan summary with results.
+  - If still "In Progress" or "Queued", keeps status as "In Progress".
+  - If an unexpected status or error, marks as "Failed" and logs details.
+  - After completion or failure, deletes the uploaded file from disk.
+  - Logs all status changes and actions.
+  - If polling fails, marks as "Failed" and logs the error.
+- Catches and logs any errors in the main loop so the service doesn’t crash.
+- Waits 10 seconds before starting the next cycle (to avoid overloading the API or database).
+
+
+using Microsoft.EntityFrameworkCore;
+using VirusDetectionApp.Data;
+using System.IO;
+
+namespace VirusDetectionApp.Services;
+
+public class SubmissionBackgroundService : BackgroundService
+{
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<SubmissionBackgroundService> _logger;
+
+    public SubmissionBackgroundService(
+        IServiceProvider serviceProvider,
+        ILogger<SubmissionBackgroundService> logger)
+    {
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Submission background service started.");
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var virusTotalService = scope.ServiceProvider.GetRequiredService<VirusTotalService>();
+
+                var queuedSubmissions = await db.Submissions
+                    .Where(s => s.Status == "Queued" && s.AnalysisId == null)
+                    .ToListAsync(stoppingToken);
+
+                _logger.LogInformation("Queued submissions found: {Count}", queuedSubmissions.Count);
+
+                foreach (var submission in queuedSubmissions)
+                {
+                    try
+                    {
+                        _logger.LogInformation(
+                            "Processing queued submission {Id} for file {FileName}.",
+                            submission.Id,
+                            submission.FileName);
+
+                        if (!File.Exists(submission.FilePath))
+                        {
+                            submission.Status = "Failed";
+                            submission.ScanSummary = "Uploaded file not found on disk.";
+
+                            _logger.LogInformation(
+                                "Submission {Id} status changed to {Status}. Summary: {Summary}",
+                                submission.Id,
+                                submission.Status,
+                                submission.ScanSummary);
+
+                            await db.SaveChangesAsync(stoppingToken);
+                            continue;
+                        }
+
+                        await using var stream = File.OpenRead(submission.FilePath);
+
+                        var analysisId = await RetryAsync(
+                             () => virusTotalService.UploadFileAsync(stream, submission.FileName),
+                             "VirusTotal file upload");
+
+                        submission.AnalysisId = analysisId;
+                        submission.Status = "In Progress";
+                        submission.ScanSummary = "File uploaded. Waiting for scan completion...";
+
+                        _logger.LogInformation(
+                            "Submission {Id} status changed to {Status}. Summary: {Summary}",
+                            submission.Id,
+                            submission.Status,
+                            submission.ScanSummary);
+
+                        await db.SaveChangesAsync(stoppingToken);
+
+                        _logger.LogInformation("Submission {Id} uploaded to VirusTotal.", submission.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        submission.Status = "Failed";
+                        submission.ScanSummary = $"Upload failed: {ex.Message}";
+
+                        _logger.LogInformation(
+                            "Submission {Id} status changed to {Status}. Summary: {Summary}",
+                            submission.Id,
+                            submission.Status,
+                            submission.ScanSummary);
+
+                        await db.SaveChangesAsync(stoppingToken);
+
+                        // Delete the uploaded file after upload fails
+                        if (!string.IsNullOrWhiteSpace(submission.FilePath) && File.Exists(submission.FilePath))
+                        {
+                            try
+                            {
+                                File.Delete(submission.FilePath);
+                                _logger.LogInformation("Deleted file for failed submission {Id}: {FilePath}", submission.Id, submission.FilePath);
+                            }
+                            catch (Exception deleteEx)
+                            {
+                                _logger.LogWarning(deleteEx, "Failed to delete file for submission {Id}: {FilePath}", submission.Id, submission.FilePath);
+                            }
+                        }
+
+                        _logger.LogError(ex, "Failed uploading submission {Id}.", submission.Id);
+                    }
+                }
+
+                var inProgressSubmissions = await db.Submissions
+                    .Where(s => s.Status == "In Progress" && s.AnalysisId != null)
+                    .ToListAsync(stoppingToken);
+
+                _logger.LogInformation("In-progress submissions found: {Count}", inProgressSubmissions.Count);
+
+                foreach (var submission in inProgressSubmissions)
+                {
+                    try
+                    {
+                        _logger.LogInformation(
+                            "Polling VirusTotal for submission {Id} with analysis ID {AnalysisId}.",
+                            submission.Id,
+                            submission.AnalysisId);
+
+                        var result = await RetryAsync(
+                             () => virusTotalService.GetAnalysisAsync(submission.AnalysisId!),
+                            "VirusTotal analysis polling");
+
+                        if (result.Status == "Completed")
+                        {
+                            submission.Status = "Completed";
+                            submission.ScanSummary = $"{result.Malicious} malicious / {result.Harmless} harmless";
+                        }
+                        else if (result.Status == "Queued" || result.Status == "In Progress")
+                        {
+                            submission.Status = "In Progress";
+                            submission.ScanSummary = "Scan in progress...";
+                        }
+                        else
+                        {
+                            submission.Status = "Failed";
+                            submission.ScanSummary = $"Unexpected status: {result.Status}";
+                        }
+
+                        _logger.LogInformation(
+                            "Submission {Id} status changed to {Status}. Summary: {Summary}",
+                            submission.Id,
+                            submission.Status,
+                            submission.ScanSummary);
+
+                        await db.SaveChangesAsync(stoppingToken);
+
+                        // Delete the uploaded file after analysis completes or fails
+                        if ((submission.Status == "Completed" || submission.Status == "Failed") && 
+                            !string.IsNullOrWhiteSpace(submission.FilePath) && 
+                            File.Exists(submission.FilePath))
+                        {
+                            try
+                            {
+                                File.Delete(submission.FilePath);
+                                _logger.LogInformation("Deleted file for submission {Id}: {FilePath}", submission.Id, submission.FilePath);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to delete file for submission {Id}: {FilePath}", submission.Id, submission.FilePath);
+                            }
+                        }
+
+                        _logger.LogInformation(
+                            "Submission {Id} updated to status {Status}.",
+                            submission.Id,
+                            submission.Status);
+                    }
+                    catch (Exception ex)
+                    {
+                        submission.Status = "Failed";
+                        submission.ScanSummary = $"Polling failed: {ex.Message}";
+
+                        _logger.LogInformation(
+                            "Submission {Id} status changed to {Status}. Summary: {Summary}",
+                            submission.Id,
+                            submission.Status,
+                            submission.ScanSummary);
+
+                        await db.SaveChangesAsync(stoppingToken);
+
+                        _logger.LogError(ex, "Failed checking submission {Id}.", submission.Id);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Background service failed.");
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+        }
+    }
+
+    private async Task<T> RetryAsync<T>(Func<Task<T>> action, string operationName, int attempts = 3)
+    {
+        Exception? lastException = null;
+
+        for (int i = 0; i < attempts; i++)
+        {
+            try
+            {
+                return await action();
+            }
+            catch (Exception ex)
+            {
+                lastException = ex;
+
+                _logger.LogWarning(
+                    ex,
+                    "{Operation} failed on attempt {Attempt} of {Attempts}.",
+                    operationName,
+                    i + 1,
+                    attempts);
+
+                await Task.Delay(TimeSpan.FromSeconds(i + 1));
+            }
+        }
+
+        throw lastException ?? new Exception($"{operationName} failed after retries.");
+    }
+}
+
+## 2.4 More Information: How The Files Get Uploaded
+- The background service (SubmissionBackgroundService) finds a queued submission and opens the file from disk.
+- It calls virusTotalService.UploadFileAsync(stream, submission.FileName).
+- Inside UploadFileAsync, the file stream is sent to VirusTotal using an HTTP POST request to the "files" endpoint.
+
+
 ## Favourite Punk, Emo, or Hard Rock band
 
-- **Guns N' Roses** 
+- **Guns N' Roses**
+
+---
+
+
+
