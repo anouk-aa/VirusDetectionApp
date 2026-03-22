@@ -683,16 +683,7 @@ public class SubmissionBackgroundService : BackgroundService
 
 - **Guns N' Roses**
 
----
 
-<details>
-<summary>1Show code:</summary>
-
-```csharp
-ddddddd
-```
-
-</details>
 
 
 
