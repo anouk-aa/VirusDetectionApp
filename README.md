@@ -12,9 +12,11 @@ A Blazor web application that analyzes files for viruses using the VirusTotal AP
 
 1. **Clone the repository** (if applicable):
    ```bash
-   git clone <repository-url>
+   git clone <https://github.com/anouk-aa/VirusDetectionApp.git>
    cd VirusDetectionApp
    ```
+
+   otherwise download zipped file from git and extract, open
 
 2. **Configure your VirusTotal API Key**:
    - Open `appsettings.json` in the project root
