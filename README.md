@@ -100,29 +100,38 @@ The application requires a VirusTotal API key for file analysis.
 - Model was first created to structure the database in 'Submission.cs'.
 - Next I created the 'AppDbContext.cs' to connect to SQLite, to create a databses with a table in on runtime in 'Program.cs'.
 
-Creates the Context for the Databases and Table 
+
+Creates the Context for the Databases and Table
+```csharp
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
     
     public DbSet<Submission> Submissions => Set<Submission>();
 }
+```
 
 - Then I registred DbContext in the 'Program.cs', where it also creates the database's name.
 
+
 //Registration of the Database
+```csharp
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=virussubmissions.db"));
+```
 
 - I then added the database creation logic (Program.cs)
 
+
 //Creates temporary container to connect to the AppDbContext.cs through the the app's dependency injection.
 //Creates the databse and table if they don't exist.
+```csharp
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>(); 
     var created = db.Database.EnsureCreated();
 }
+```
 
 ## 2. Processing and Uploading of Sumbission 
 
@@ -159,25 +168,28 @@ using (var scope = app.Services.CreateScope())
 - To do this I set a base url: https://www.virustotal.com/api/v3/ for all the all HttpClient requests to VirusTotal API, Added the API key to the default request headers and added a "application/json" to the Accept header (tells API we want JSON responses).
 
 
-    public VirusTotalService(HttpClient httpClient, IConfiguration configuration)
+
+```csharp
+public VirusTotalService(HttpClient httpClient, IConfiguration configuration)
+{
+    _httpClient = httpClient;
+    _configuration = configuration;
+
+    var apiKey = _configuration["VirusTotal:ApiKey"];
+
+    if (string.IsNullOrWhiteSpace(apiKey))
     {
-        _httpClient = httpClient;
-        _configuration = configuration;
-
-        var apiKey = _configuration["VirusTotal:ApiKey"];
-
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            throw new Exception("VirusTotal API key is missing in appsettings.json");
-        }
-
-        _httpClient.BaseAddress = new Uri("https://www.virustotal.com/api/v3/");
-
-        _httpClient.DefaultRequestHeaders.Clear();
-        _httpClient.DefaultRequestHeaders.Add("x-apikey", apiKey);
-        _httpClient.DefaultRequestHeaders.Accept.Add(
-            new MediaTypeWithQualityHeaderValue("application/json"));
+        throw new Exception("VirusTotal API key is missing in appsettings.json");
     }
+
+    _httpClient.BaseAddress = new Uri("https://www.virustotal.com/api/v3/");
+
+    _httpClient.DefaultRequestHeaders.Clear();
+    _httpClient.DefaultRequestHeaders.Add("x-apikey", apiKey);
+    _httpClient.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("application/json"));
+}
+```
 
 ## 2.2.2. VirusTotalService's UploadFileAsync Method
 - I created an async method that takes file stream and name, returns analysis ID string.
@@ -187,12 +199,15 @@ using (var scope = app.Services.CreateScope())
 - I created its scope and registered it in 'Program.cs' which also allows it to test the connection first.
 
 
-    using (var scope = app.Services.CreateScope())
-    {
-        var virusTotalService = scope.ServiceProvider.GetRequiredService<VirusTotalService>();
-        var result = await virusTotalService.TestConnectionAsync();
-        app.Logger.LogInformation("VirusTotal response: {Result}", result);
-    }
+
+```csharp
+using (var scope = app.Services.CreateScope())
+{
+    var virusTotalService = scope.ServiceProvider.GetRequiredService<VirusTotalService>();
+    var result = await virusTotalService.TestConnectionAsync();
+    app.Logger.LogInformation("VirusTotal response: {Result}", result);
+}
+```
 - I set the content type to binary as its the format required for file uplaods.
 - I allowed it to add the file content to the multipart form with name "file" and the filename. (multipart)
 - I created a post request to "files" endpoint with the multipart content.
@@ -202,37 +217,40 @@ using (var scope = app.Services.CreateScope())
 - It then extracts the analysisId from the JSON, navigates to "data" and  from that the "id" property in JSON and then gets the string value of the analysisId.
 
 
- public async Task<string> UploadFileAsync(Stream fileStream, string fileName)
+
+```csharp
+public async Task<string> UploadFileAsync(Stream fileStream, string fileName)
+{
+    using var content = new MultipartFormDataContent();
+
+    using var fileContent = new StreamContent(fileStream);
+    fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+    content.Add(fileContent, "file", fileName);
+
+    var response = await _httpClient.PostAsync("files", content);
+    var json = await response.Content.ReadAsStringAsync();
+
+    if (!response.IsSuccessStatusCode)
     {
-        using var content = new MultipartFormDataContent();
-
-        using var fileContent = new StreamContent(fileStream);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-
-        content.Add(fileContent, "file", fileName);
-
-        var response = await _httpClient.PostAsync("files", content);
-        var json = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception($"VirusTotal upload failed: {json}");
-        }
-
-        using var document = JsonDocument.Parse(json);
-
-        var analysisId = document.RootElement
-            .GetProperty("data")
-            .GetProperty("id")
-            .GetString();
-
-        if (string.IsNullOrWhiteSpace(analysisId))
-        {
-            throw new Exception("VirusTotal did not return an analysis ID.");
-        }
-
-        return analysisId;
+        throw new Exception($"VirusTotal upload failed: {json}");
     }
+
+    using var document = JsonDocument.Parse(json);
+
+    var analysisId = document.RootElement
+        .GetProperty("data")
+        .GetProperty("id")
+        .GetString();
+
+    if (string.IsNullOrWhiteSpace(analysisId))
+    {
+        throw new Exception("VirusTotal did not return an analysis ID.");
+    }
+
+    return analysisId;
+}
+```
 
 ## 2.2.  Sumbission Creation 'Submission.cs'
 
@@ -248,16 +266,21 @@ using (var scope = app.Services.CreateScope())
 - Gets incoming submission and adds it to the database.
 - Awaits to save changes so that it makes sure your new or updated data is actually written to the database.
 
+
+```csharp
 public async Task AddSubmissionAsync(Submission submission)
 {
     _db.Submissions.Add(submission);
     await _db.SaveChangesAsync();
 }
+```
 
 ## 2.2.3. Get All Sumbission Method
 - Gets all submissions, newest first, without tracking changes.
 - Uses awaits for the database to finish fetching the data, then returns the result.
 
+
+```csharp
 public async Task<List<Submission>> GetAllSubmissionsAsync()
 {
     return await _db.Submissions
@@ -265,12 +288,15 @@ public async Task<List<Submission>> GetAllSubmissionsAsync()
         .OrderByDescending(s => s.SubmittedAt)
         .ToListAsync();
 }
+```
 
 ## 2.2.3. Get Pending Sumbissions Method
 - Gets only submissions that are still being processed.
 - Uses awaits for the database to finish fetching the data, then returns the result.
 - This will be used in the 'SubmissionBackgroundService.cs', because the app needs to know which files are still waiting for virus scan results. This lets the background service keep checking only those files, instead of re-checking everything or missing update.
 
+
+```csharp
 public async Task<List<Submission>> GetPendingSubmissionsAsync()
 {
     return await _db.Submissions
@@ -279,6 +305,7 @@ public async Task<List<Submission>> GetPendingSubmissionsAsync()
         .OrderByDescending(s => s.SubmittedAt)
         .ToListAsync();
 }
+```
 
 
 ## 2.2.4. Get Sumbission by ID Method
@@ -286,26 +313,34 @@ public async Task<List<Submission>> GetPendingSubmissionsAsync()
 - Uses awaits for the database to finish fetching the data, then returns the result.
 - When you want to show details or update the status of a specific file (like when a scan finishes), you need a way to find that exact submission. This method makes sure you always get the right record to display or update.
 
+
+```csharp
 public async Task<Submission?> GetSubmissionByIdAsync(int id)
 {
     return await _db.Submissions.FirstOrDefaultAsync(s => s.Id == id);
 }
+```
 
 ## 2.2.4. Update Sumbission Method
 - Updates an existing submission in the database.
 - waits to save changes so that it makes sure your new or updated data is actually written to the database.
 
 
+
+```csharp
 public async Task UpdateSubmissionAsync(Submission submission)
 {
     _db.Submissions.Update(submission);
     await _db.SaveChangesAsync();
 }
+```
 
 ## 2.2.5. Update Sumbission Status Method
 - Finds a submission by ID and updates its status and summary.
 - This method is activated through the 'SubmissionBackgroundService.cs'.
 
+
+```csharp
 public async Task UpdateSubmissionStatusAsync(
     int id,
     string status,
@@ -323,11 +358,14 @@ public async Task UpdateSubmissionStatusAsync(
 
     await _db.SaveChangesAsync();
 }
+```
 
 ## 2.2.6. Export Sumbission Method
 - Gets all submissions for exporting (e.g., to Excel).
 - Awaits for the database to finish up before exporting
 
+
+```csharp
 public async Task<List<Submission>> ExportSubmissionsAsync()
 {
     return await _db.Submissions
@@ -335,6 +373,7 @@ public async Task<List<Submission>> ExportSubmissionsAsync()
         .OrderByDescending(s => s.SubmittedAt)
         .ToListAsync();
 }
+```
 
 
 ## 2.3.  Export Service Creation 'ExportService.cs'
@@ -367,6 +406,8 @@ public async Task<List<Submission>> ExportSubmissionsAsync()
 - Saves the file to memory not a disk.
 - Returns the file as a byte array, ready for download.
 
+
+```csharp
 public class ExportService
 {
     public byte[] CreateSubmissionsExcel(List<Submission> submissions)
@@ -405,6 +446,7 @@ public class ExportService
         return stream.ToArray();
     }
 }
+```
 
 ## 2.3.  Backgroound Service for Submission Creation 'SubmissionBackgroundService.cs'
 - I first registered the service in 'Program.cs'
@@ -440,6 +482,8 @@ public class ExportService
 - Waits 10 seconds before starting the next cycle (to avoid overloading the API or database).
 
 
+
+```csharp
 using Microsoft.EntityFrameworkCore;
 using VirusDetectionApp.Data;
 using System.IO;
@@ -671,6 +715,7 @@ public class SubmissionBackgroundService : BackgroundService
         throw lastException ?? new Exception($"{operationName} failed after retries.");
     }
 }
+```
 
 ## 2.4 More Information: How The Files Get Uploaded
 - The background service (SubmissionBackgroundService) finds a queued submission and opens the file from disk.
