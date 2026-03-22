@@ -10,7 +10,7 @@ A Blazor web application that analyzes files for viruses using the VirusTotal AP
 
 ### Installation Steps
 
-1. OPTION A: **Clone the repository** (if applicable):
+1.  **OPTION A: Clone the repository** (if applicable):
    ```bash
    git clone https://github.com/anouk-aa/VirusDetectionApp.git
    cd VirusDetectionApp
@@ -19,7 +19,7 @@ A Blazor web application that analyzes files for viruses using the VirusTotal AP
    - If that doesn't wprk open it manually in Visual Studio Code.
 
 
-   OTION B:
+   **OPTION B: Maunal Extraction
     - Download and extract zipped file from https://github.com/anouk-aa/VirusDetectionApp.git>
 	-	Open Visual Studio
 	-	Click “Open a project or solution”
