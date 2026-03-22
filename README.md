@@ -678,12 +678,6 @@ public class SubmissionBackgroundService : BackgroundService
 - Inside UploadFileAsync, the file stream is sent to VirusTotal using an HTTP POST request to the "files" endpoint.
 
 
-
 ## Favourite Punk, Emo, or Hard Rock band
 
-- **Guns N' Roses**
-
-
-
-
-
+- **Guns N' Roses** 
