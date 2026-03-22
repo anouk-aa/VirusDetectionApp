@@ -148,8 +148,11 @@ using (var scope = app.Services.CreateScope())
 ## 2.2.  VirusTotalService Creation 'VirusTotalService.cs'
 
 ## 2.2.1. VirusTotalService's Constructor
+- I first registered the service in 'Program.cs'
 
-- I created VirusTotalService.cs and it's class that sends the submission through to VirusTotal.
+    builder.Services.AddHttpClient<VirusTotalService>();
+
+- Then I proceeded tocreated VirusTotalService.cs and it's class that sends the submission through to VirusTotal.
 - I  declared private readonly fields that get their values automatically from ASP.NET Core's Dependency Injection (DI) container and then set it up for ussage.
 - I set the API key's and checked and checked if the API key is missing or empty.
 - I then configured the HttpClient with the virus api Key.
@@ -177,13 +180,12 @@ using (var scope = app.Services.CreateScope())
     }
 
 ## 2.2.2. VirusTotalService's UploadFileAsync Method
-- I created an async method that takes file stream and name, returns analysis ID string.
+- I created an async method that takes file stream and name, returns analysis ID string and reg
 - It used aync because it lets you do other things while waiting for answers from VirusTotal.
 - I created a multipart form content object for file upload (automatically deleted from memory after done).
 - I created a stream content from the file stream (automatically deleted from memory after done).
 - I created its scope and registered it in 'Program.cs' which also allows it to test the connection first.
 
-    builder.Services.AddHttpClient<VirusTotalService>();
 
     using (var scope = app.Services.CreateScope())
     {
@@ -232,14 +234,107 @@ using (var scope = app.Services.CreateScope())
         return analysisId;
     }
 
-## 2.2.  Sumbission Creation 'VirusTotalService.cs'
+## 2.2.  Sumbission Creation 'Submission.cs'
 
-- I created the 'Submission.cs' Service that allows you to save the submissions to the database.
-  - What it calls?
-  - 'AppDBContext.cs' to provide connection to the databse created.
-  - DbSet<Submission> property from 'AppDbContext', to set the data 
-- 
+## 2.2.1. Submission's Database Connection Setup
+- I first registered the submission service in 'Program.cs'
+    builder.Services.AddScoped<SubmissionService>();
 
+- I continued to to create the 'Submission.cs' service that allows you to save the submissions to the database.
+- It then defines the service and then set up a vraiable for AppDbContext.
+- It then injects the AppDbContext into the variable for ussage.
+
+## 2.2.2. Sumbission Method
+- Gets incoming submission and adds it to the database.
+- Awaits to save changes so that it makes sure your new or updated data is actually written to the database.
+
+public async Task AddSubmissionAsync(Submission submission)
+{
+    _db.Submissions.Add(submission);
+    await _db.SaveChangesAsync();
+}
+
+## 2.2.3. Get All Sumbission Method
+- Gets all submissions, newest first, without tracking changes.
+- Uses awaits for the database to finish fetching the data, then returns the result.
+
+public async Task<List<Submission>> GetAllSubmissionsAsync()
+{
+    return await _db.Submissions
+        .AsNoTracking()
+        .OrderByDescending(s => s.SubmittedAt)
+        .ToListAsync();
+}
+
+## 2.2.3. Get Pending Sumbissions Method
+- Gets only submissions that are still being processed.
+- Uses awaits for the database to finish fetching the data, then returns the result.
+- This will be used in the 'SubmissionBackgroundService.cs', because the app needs to know which files are still waiting for virus scan results. This lets the background service keep checking only those files, instead of re-checking everything or missing update.
+
+public async Task<List<Submission>> GetPendingSubmissionsAsync()
+{
+    return await _db.Submissions
+        .AsNoTracking()
+        .Where(s => s.Status != "Completed" && s.Status != "Failed")
+        .OrderByDescending(s => s.SubmittedAt)
+        .ToListAsync();
+}
+
+
+## 2.2.4. Get Sumbission by ID Method
+- Finds a specific submission by its ID.
+- Uses awaits for the database to finish fetching the data, then returns the result.
+- When you want to show details or update the status of a specific file (like when a scan finishes), you need a way to find that exact submission. This method makes sure you always get the right record to display or update.
+
+public async Task<Submission?> GetSubmissionByIdAsync(int id)
+{
+    return await _db.Submissions.FirstOrDefaultAsync(s => s.Id == id);
+}
+
+## 2.2.4. Update Sumbission Method
+- Updates an existing submission in the database.
+- waits to save changes so that it makes sure your new or updated data is actually written to the database.
+
+
+public async Task UpdateSubmissionAsync(Submission submission)
+{
+    _db.Submissions.Update(submission);
+    await _db.SaveChangesAsync();
+}
+
+## 2.2.5. Update Sumbission Status Method
+- Finds a submission by ID and updates its status and summary.
+- This method is activated through the 'SubmissionBackgroundService.cs'.
+
+public async Task UpdateSubmissionStatusAsync(
+    int id,
+    string status,
+    string? scanSummary = null)
+{
+    var submission = await _db.Submissions.FirstOrDefaultAsync(s => s.Id == id);
+
+    if (submission == null)
+    {
+        return;
+    }
+
+    submission.Status = status;
+    submission.ScanSummary = scanSummary;
+
+    await _db.SaveChangesAsync();
+}
+
+## 2.2.6. Export Sumbission Method
+- Gets all submissions for exporting (e.g., to Excel).
+- Awaits for the database to finish up before exporting
+
+public async Task<List<Submission>> ExportSubmissionsAsync()
+{
+    return await _db.Submissions
+        .AsNoTracking()
+        .OrderByDescending(s => s.SubmittedAt)
+        .ToListAsync();
+}
 ## Favourite Punk, Emo, or Hard Rock band
 
 - **Guns N' Roses** 
