@@ -96,16 +96,6 @@ The application requires a VirusTotal API key for file analysis.
 
 ### Process Overview - (After API registration for VirsusTotalService)
 
-
-<details>
-<summary>Show code:</summary>
-
-```csharp
-ddddddd
-
-</details> ```
-
-
 ### 1. Initial Creation of Database
 - Model was first created to structure the database in 'Submission.cs'.
 - Next I created the 'AppDbContext.cs' to connect to SQLite, to create a databses with a table in on runtime in 'Program.cs'.
@@ -688,11 +678,21 @@ public class SubmissionBackgroundService : BackgroundService
 - Inside UploadFileAsync, the file stream is sent to VirusTotal using an HTTP POST request to the "files" endpoint.
 
 
+
 ## Favourite Punk, Emo, or Hard Rock band
 
 - **Guns N' Roses**
 
 ---
+
+<details>
+<summary>1Show code:</summary>
+
+```
+dddd
+```
+
+</details>
 
 
 
