@@ -133,9 +133,9 @@ using (var scope = app.Services.CreateScope())
 }
 ```
 
-###  2. Processing and Uploading of Sumbission 
+## 2. Processing and Uploading of Sumbission 
 
-## 2.1.  VirusTotalService Set up 'apsettings.json'
+### 2.1.  VirusTotalService Set up 'apsettings.json'
 
 - I set my API key which I got from https://www.virustotal.com  which will be needed in the virus detection passing service.
 
@@ -154,9 +154,9 @@ using (var scope = app.Services.CreateScope())
   "AllowedHosts": "*"
 }
 
-## 2.2.  VirusTotalService Creation 'VirusTotalService.cs'
+### 2.2.  VirusTotalService Creation 'VirusTotalService.cs'
 
-### 2.2.1. VirusTotalService's Constructor
+#### 2.2.1. VirusTotalService's Constructor
 - I first registered the service in 'Program.cs'
 
     builder.Services.AddHttpClient<VirusTotalService>();
@@ -191,7 +191,7 @@ public VirusTotalService(HttpClient httpClient, IConfiguration configuration)
 }
 ```
 
-## 2.2.2. VirusTotalService's UploadFileAsync Method
+#### 2.2.2. VirusTotalService's UploadFileAsync Method
 - I created an async method that takes file stream and name, returns analysis ID string.
 - It used aync because it lets you do other things while waiting for answers from VirusTotal.
 - I created a multipart form content object for file upload (automatically deleted from memory after done).
@@ -252,9 +252,9 @@ public async Task<string> UploadFileAsync(Stream fileStream, string fileName)
 }
 ```
 
-## 2.2.  Sumbission Creation 'Submission.cs'
+### 2.3.  Sumbission Creation 'Submission.cs'
 
-### 2.2.1. Submission's Database Connection Setup
+#### 2.3.1. Submission's Database Connection Setup
 - I first registered the submission service in 'Program.cs'
     builder.Services.AddScoped<SubmissionService>();
 
@@ -262,7 +262,7 @@ public async Task<string> UploadFileAsync(Stream fileStream, string fileName)
 - It then defines the service and then set up a vraiable for AppDbContext.
 - It then injects the AppDbContext into the variable for ussage.
 
-### 2.2.2. Sumbission Method
+### 2.3.2. Sumbission Method
 - Gets incoming submission and adds it to the database.
 - Awaits to save changes so that it makes sure your new or updated data is actually written to the database.
 
@@ -275,7 +275,7 @@ public async Task AddSubmissionAsync(Submission submission)
 }
 ```
 
-### 2.2.3. Get All Sumbission Method
+#### 2.3.3. Get All Sumbission Method
 - Gets all submissions, newest first, without tracking changes.
 - Uses awaits for the database to finish fetching the data, then returns the result.
 
@@ -290,7 +290,7 @@ public async Task<List<Submission>> GetAllSubmissionsAsync()
 }
 ```
 
-### 2.2.3. Get Pending Sumbissions Method
+#### 2.3.3. Get Pending Sumbissions Method
 - Gets only submissions that are still being processed.
 - Uses awaits for the database to finish fetching the data, then returns the result.
 - This will be used in the 'SubmissionBackgroundService.cs', because the app needs to know which files are still waiting for virus scan results. This lets the background service keep checking only those files, instead of re-checking everything or missing update.
@@ -308,7 +308,7 @@ public async Task<List<Submission>> GetPendingSubmissionsAsync()
 ```
 
 
-### 2.2.4. Get Sumbission by ID Method
+#### 2.3.4. Get Sumbission by ID Method
 - Finds a specific submission by its ID.
 - Uses awaits for the database to finish fetching the data, then returns the result.
 - When you want to show details or update the status of a specific file (like when a scan finishes), you need a way to find that exact submission. This method makes sure you always get the right record to display or update.
@@ -321,7 +321,7 @@ public async Task<Submission?> GetSubmissionByIdAsync(int id)
 }
 ```
 
-### 2.2.4. Update Sumbission Method
+#### 2.3.4. Update Sumbission Method
 - Updates an existing submission in the database.
 - waits to save changes so that it makes sure your new or updated data is actually written to the database.
 
@@ -335,7 +335,7 @@ public async Task UpdateSubmissionAsync(Submission submission)
 }
 ```
 
-## 2.2.5. Update Sumbission Status Method
+#### 2.3.5. Update Sumbission Status Method
 - Finds a submission by ID and updates its status and summary.
 - This method is activated through the 'SubmissionBackgroundService.cs'.
 
@@ -360,7 +360,7 @@ public async Task UpdateSubmissionStatusAsync(
 }
 ```
 
-### 2.2.6. Export Sumbission Method
+#### 2.3.6. Export Sumbission Method
 - Gets all submissions for exporting (e.g., to Excel).
 - Awaits for the database to finish up before exporting
 
@@ -376,7 +376,7 @@ public async Task<List<Submission>> ExportSubmissionsAsync()
 ```
 
 
-## 2.3.  Export Service Creation 'ExportService.cs'
+### 2.4.  Export Service Creation 'ExportService.cs'
 - Registers service firts in 'Program.cs'.
 
     builder.Services.AddScoped<ExportService>();
@@ -448,7 +448,7 @@ public class ExportService
 }
 ```
 
-### 2.4.  Backgroound Service for Submission Creation 'SubmissionBackgroundService.cs'
+### 2.5.  Backgroound Service for Submission Creation 'SubmissionBackgroundService.cs'
 - I first registered the service in 'Program.cs'
 
     builder.Services.AddHostedService<SubmissionBackgroundService>();
@@ -717,7 +717,7 @@ public class SubmissionBackgroundService : BackgroundService
 }
 ```
 
-### 3. More Information: How The Files Get Uploaded
+### 4. More Information: How The Files Get Uploaded
 - The background service (SubmissionBackgroundService) finds a queued submission and opens the file from disk.
 - It calls virusTotalService.UploadFileAsync(stream, submission.FileName).
 - Inside UploadFileAsync, the file stream is sent to VirusTotal using an HTTP POST request to the "files" endpoint.
