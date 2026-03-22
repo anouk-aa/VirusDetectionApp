@@ -100,7 +100,7 @@ The application requires a VirusTotal API key for file analysis.
 - Model was first created to structure the database in 'Submission.cs'.
 - Next I created the 'AppDbContext.cs' to connect to SQLite, to create a databses with a table in on runtime in 'Program.cs'.
 
-//Creates the Context for the Databases and Table 
+Creates the Context for the Databases and Table 
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
@@ -125,10 +125,120 @@ using (var scope = app.Services.CreateScope())
 }
 
 ## 2. Processing and Uploading of Sumbission 
--I created the 'Submission.cs' Service that allows you to save the submissions to the database.
-  -What it calls?
+
+## 2.1.  VirusTotalService Set up 'apsettings.json'
+
+- I set my API key which I got from https://www.virustotal.com  which will be needed in the virus detection passing service.
+
+{
+  "VirusTotal": {
+    "ApiKey": "insert_your_api_key_here"
+  },
+
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+
+  "AllowedHosts": "*"
+}
+
+## 2.2.  VirusTotalService Creation 'VirusTotalService.cs'
+
+## 2.2.1. VirusTotalService's Constructor
+
+- I created VirusTotalService.cs and it's class that sends the submission through to VirusTotal.
+- I  declared private readonly fields that get their values automatically from ASP.NET Core's Dependency Injection (DI) container and then set it up for ussage.
+- I set the API key's and checked and checked if the API key is missing or empty.
+- I then configured the HttpClient with the virus api Key.
+- To do this I set a base url: https://www.virustotal.com/api/v3/ for all the all HttpClient requests to VirusTotal API, Added the API key to the default request headers and added a "application/json" to the Accept header (tells API we want JSON responses).
+
+
+    public VirusTotalService(HttpClient httpClient, IConfiguration configuration)
+    {
+        _httpClient = httpClient;
+        _configuration = configuration;
+
+        var apiKey = _configuration["VirusTotal:ApiKey"];
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new Exception("VirusTotal API key is missing in appsettings.json");
+        }
+
+        _httpClient.BaseAddress = new Uri("https://www.virustotal.com/api/v3/");
+
+        _httpClient.DefaultRequestHeaders.Clear();
+        _httpClient.DefaultRequestHeaders.Add("x-apikey", apiKey);
+        _httpClient.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
+    }
+
+## 2.2.2. VirusTotalService's UploadFileAsync Method
+- I created an async method that takes file stream and name, returns analysis ID string.
+- It used aync because it lets you do other things while waiting for answers from VirusTotal.
+- I created a multipart form content object for file upload (automatically deleted from memory after done).
+- I created a stream content from the file stream (automatically deleted from memory after done).
+- I created its scope and registered it in 'Program.cs' which also allows it to test the connection first.
+
+    builder.Services.AddHttpClient<VirusTotalService>();
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var virusTotalService = scope.ServiceProvider.GetRequiredService<VirusTotalService>();
+        var result = await virusTotalService.TestConnectionAsync();
+        app.Logger.LogInformation("VirusTotal response: {Result}", result);
+    }
+- I set the content type to binary as its the format required for file uplaods.
+- I allowed it to add the file content to the multipart form with name "file" and the filename. (multipart)
+- I created a post request to "files" endpoint with the multipart content.
+- It reads the reponse as a JSON string.
+- It throws an excepton with erro details if upload failed.
+- If succesful, it parses the JSON response into a document for reading (automatically deleted from memory after done).
+- It then extracts the analysisId from the JSON, navigates to "data" and  from that the "id" property in JSON and then gets the string value of the analysisId.
+
+
+ public async Task<string> UploadFileAsync(Stream fileStream, string fileName)
+    {
+        using var content = new MultipartFormDataContent();
+
+        using var fileContent = new StreamContent(fileStream);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+        content.Add(fileContent, "file", fileName);
+
+        var response = await _httpClient.PostAsync("files", content);
+        var json = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"VirusTotal upload failed: {json}");
+        }
+
+        using var document = JsonDocument.Parse(json);
+
+        var analysisId = document.RootElement
+            .GetProperty("data")
+            .GetProperty("id")
+            .GetString();
+
+        if (string.IsNullOrWhiteSpace(analysisId))
+        {
+            throw new Exception("VirusTotal did not return an analysis ID.");
+        }
+
+        return analysisId;
+    }
+
+## 2.2.  Sumbission Creation 'VirusTotalService.cs'
+
+- I created the 'Submission.cs' Service that allows you to save the submissions to the database.
+  - What it calls?
   - 'AppDBContext.cs' to provide connection to the databse created.
   - DbSet<Submission> property from 'AppDbContext', to set the data 
+- 
 
 ## Favourite Punk, Emo, or Hard Rock band
 
