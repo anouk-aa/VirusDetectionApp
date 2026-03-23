@@ -20,7 +20,7 @@ A Blazor web application that analyzes files for viruses using the VirusTotal AP
 
 
    **OPTION B: Maunal Extraction**
-    - Download and extract zipped file from https://github.com/anouk-aa/VirusDetectionApp.git>
+    -  Download and extract zipped file from https://github.com/anouk-aa/VirusDetectionApp.git
 	-	Open Visual Studio
 	-	Click “Open a project or solution”
 	-	Navigate to your folder where you extracted the code
