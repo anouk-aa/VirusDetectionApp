@@ -19,11 +19,11 @@ A Blazor web application that analyzes files for viruses using the VirusTotal AP
    - If that doesn't wprk open it manually in Visual Studio Code.
 
 
-   **OPTION B: Maunal Extraction**
-    -  Download and extract zipped file from https://github.com/anouk-aa/VirusDetectionApp.git
-	-	Open Visual Studio
-	-	Click “Open a project or solution”
-	-	Navigate to your folder where you extracted the code
+   **OPTION B: Manual Extraction**
+   - Download and extract the zipped file from [https://github.com/anouk-aa/VirusDetectionApp.git](https://github.com/anouk-aa/VirusDetectionApp.git)
+   - Open Visual Studio
+   - Click "Open a project or solution"
+   - Navigate to your folder where you extracted the code
 
 2. **Configure your VirusTotal API Key**:
    - Open `appsettings.json` in the project root

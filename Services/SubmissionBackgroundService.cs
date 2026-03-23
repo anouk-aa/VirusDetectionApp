@@ -157,8 +157,8 @@ public class SubmissionBackgroundService : BackgroundService
                         await db.SaveChangesAsync(stoppingToken);
 
                         // Delete the uploaded file after analysis completes or fails
-                        if ((submission.Status == "Completed" || submission.Status == "Failed") && 
-                            !string.IsNullOrWhiteSpace(submission.FilePath) && 
+                        if ((submission.Status == "Completed" || submission.Status == "Failed") &&
+                            !string.IsNullOrWhiteSpace(submission.FilePath) &&
                             File.Exists(submission.FilePath))
                         {
                             try

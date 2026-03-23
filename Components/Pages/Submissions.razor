@@ -2,9 +2,44 @@
 @rendermode InteractiveServer
 @using VirusDetectionApp.Models
 @using VirusDetectionApp.Services
-@implements IDisposable
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 
 <style>
+    body.submissions-orbs-active .app-bg .orb {
+        display: block;
+        animation: none;
+        opacity: 0.58;
+        filter: blur(74px);
+    }
+
+    body.submissions-orbs-active .app-bg .orb-1 {
+        width: var(--sub-orb-1-size, 1000px);
+        height: var(--sub-orb-1-size, 1000px);
+        background: radial-gradient(circle, rgba(194,249,112,0.72) 0%, transparent 68%);
+        transform: translate3d(var(--sub-orb-1-x, -300px), var(--sub-orb-1-y, -300px), 0);
+        top: 0;
+        left: 0;
+    }
+
+    body.submissions-orbs-active .app-bg .orb-2 {
+        width: var(--sub-orb-2-size, 900px);
+        height: var(--sub-orb-2-size, 900px);
+        background: radial-gradient(circle, rgba(255,39,165,0.68) 0%, transparent 68%);
+        transform: translate3d(var(--sub-orb-2-x, 0px), var(--sub-orb-2-y, 0px), 0);
+        top: 0;
+        left: 0;
+    }
+
+    body.submissions-orbs-active .app-bg .orb-3 {
+        width: var(--sub-orb-3-size, 920px);
+        height: var(--sub-orb-3-size, 920px);
+        background: radial-gradient(circle, rgba(80,40,180,0.55) 0%, transparent 68%);
+        transform: translate3d(var(--sub-orb-3-x, 0px), var(--sub-orb-3-y, 0px), 0);
+        top: 0;
+        left: 0;
+    }
+
     .loader {
         height: 8px;
         aspect-ratio: 6;
@@ -41,9 +76,19 @@
         background: rgba(0, 204, 255, 0.28);
         box-shadow: 0 4px 20px rgba(0,204,255,0.30);
     }
+
+    .page-title-gradient {
+        display: inline-block;
+        background: linear-gradient(90deg, #31d7ff 0%, #8d7bff 45%, #ff67b7 100%);
+        background-size: 100% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: transparent;
+    }
 </style>
 
-<h2>Submissions</h2>
+<h2 class="page-title-gradient">Submissions</h2>
 
 <p>
     <a href="/export/submissions" target="_blank" class="btn-export">Download Excel Export</a>
@@ -118,6 +163,23 @@ else
         _ = RunPollingAsync(cts.Token);
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("initSubmissionsOrbs");
+            }
+            catch (JSException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+    }
+
     private async Task RunPollingAsync(CancellationToken token)
     {
         try
@@ -139,10 +201,24 @@ else
         lastUpdated = DateTime.Now.ToString("HH:mm:ss");
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         cts?.Cancel();
         timer?.Dispose();
         cts?.Dispose();
+
+        try
+        {
+            await JS.InvokeVoidAsync("stopSubmissionsOrbs");
+        }
+        catch (JSException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (JSDisconnectedException)
+        {
+        }
     }
 }

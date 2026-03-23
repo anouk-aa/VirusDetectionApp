@@ -11,6 +11,8 @@ main[b-6nly7r9l6n] {
 }
 
 .sidebar[b-6nly7r9l6n] {
+    position: relative;
+    z-index: 3;
     background: rgba(255,255,255,0.05);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -95,6 +97,26 @@ main[b-6nly7r9l6n] {
     .top-row[b-6nly7r9l6n], article[b-6nly7r9l6n] {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
+    }
+}
+
+@media (min-width: 641px) {
+    body.submissions-orbs-active .page[b-6nly7r9l6n] {
+        display: block;
+    }
+
+    body.submissions-orbs-active .sidebar[b-6nly7r9l6n] {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 250px;
+        height: 100vh;
+        min-height: 100vh;
+    }
+
+    body.submissions-orbs-active main[b-6nly7r9l6n] {
+        margin-left: 250px;
     }
 }
 

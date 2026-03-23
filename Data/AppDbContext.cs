@@ -11,6 +11,6 @@ public class AppDbContext : DbContext
     {
     }
 
-//Declares the submission table in the db.
+    //Declares the submission table in the db.
     public DbSet<Submission> Submissions => Set<Submission>();
 }
