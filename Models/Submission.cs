@@ -1,6 +1,6 @@
 namespace VirusDetectionApp.Models;
 
-//WHY IS SCANSUMMARY SET TO NULL?
+//WHY IS Status SET TO Queued?
 //Step: Upload file-> (Status) Queued-> (ScanSummary) null
 //Step: Upload file-> (Status) In Progress-> (ScanSummary) null
 //Step: Upload file-> (Status) Completed-> (ScanSummary) e.g. 5/70

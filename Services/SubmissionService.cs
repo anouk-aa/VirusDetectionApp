@@ -43,12 +43,6 @@ public class SubmissionService
         return await _db.Submissions.FirstOrDefaultAsync(s => s.Id == id);
     }
 
-    public async Task UpdateSubmissionAsync(Submission submission)
-    {
-        _db.Submissions.Update(submission);
-        await _db.SaveChangesAsync();
-    }
-
     //The status and scansummary needs to be updated based of its completion state
     public async Task UpdateSubmissionStatusAsync(
         int id,
