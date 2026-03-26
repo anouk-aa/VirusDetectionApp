@@ -117,6 +117,7 @@ else
                 <th>Submitted</th>
                 <th>Status</th>
                 <th>Scan Summary</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -141,6 +142,12 @@ else
                             </div>
                         }
                     </td>
+                    <td>
+                        <button @onclick="() => DeleteSubmissionAsync(submission.Id)"
+                                disabled="@(deletingId == submission.Id)">
+                            @(deletingId == submission.Id ? "Deleting..." : "Delete")
+                        </button>
+                    </td>
                 </tr>
             }
         </tbody>
@@ -152,6 +159,7 @@ else
     private string lastUpdated = "";
     private PeriodicTimer? timer;
     private CancellationTokenSource? cts;
+    private int? deletingId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -199,6 +207,27 @@ else
     {
         submissions = await SubmissionService.GetAllSubmissionsAsync();
         lastUpdated = DateTime.Now.ToString("HH:mm:ss");
+    }
+
+    private async Task DeleteSubmissionAsync(int id)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Delete this submission?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        deletingId = id;
+
+        try
+        {
+            await SubmissionService.DeleteSubmissionAsync(id);
+            await LoadSubmissionsAsync();
+        }
+        finally
+        {
+            deletingId = null;
+        }
     }
 
     public async ValueTask DisposeAsync()

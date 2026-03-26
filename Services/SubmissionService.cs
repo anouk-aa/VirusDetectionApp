@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 using VirusDetectionApp.Data;
 using VirusDetectionApp.Models;
 
@@ -68,5 +69,24 @@ public class SubmissionService
             .AsNoTracking()
             .OrderByDescending(s => s.SubmittedAt)
             .ToListAsync();
+    }
+
+    public async Task<bool> DeleteSubmissionAsync(int id)
+    {
+        var submission = await _db.Submissions.FirstOrDefaultAsync(s => s.Id == id);
+
+        if (submission == null)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(submission.FilePath) && File.Exists(submission.FilePath))
+        {
+            File.Delete(submission.FilePath);
+        }
+
+        _db.Submissions.Remove(submission);
+        await _db.SaveChangesAsync();
+        return true;
     }
 }
